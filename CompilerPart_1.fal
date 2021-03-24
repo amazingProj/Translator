@@ -1,0 +1,211 @@
+
+/*************************************
+* Building a Compiler 
+* translate VM into assembly
+**************************************/
+
+/*************** Files **************/
+output_path = "C:\\Users\\asaf0\\Desktop\\PPL\\object.asm"
+result = OutputStream(path)
+
+/********** variables ***********/
+/// number of true label for example: @TRUE1, @TRUE2 ...
+true_label = 0 
+/// as appear above but with false label
+false_label = 0
+dict = [ "local" => "LCL", "argument" => "ARG", "this" => "THIS",
+          "that" => "THAT" ]
+
+str = ""
+/********** operation functions **************/
+function add ()
+    result.writeText("@SP" 
+	                     + "\n" + "A=M-1" 
+						 + "\n" + "D=M" 
+						 + "\n" + "A=A-1"
+						 + "\n" + "M=D+M" 
+						 + "\n" + "@SP" 
+						 + "\n" + "M=M-1" + "\n")
+end
+
+function sub ()
+    result.writeText("@SP" 
+	                   + "\n" + "A=M-1" 
+					   + "\n" + "D=M" 
+					   + "\n" + "A=A-1"
+					   + "\n" + "M=M-D" 
+					   + "\n" + "@SP" 
+					   + "\n" + "M=M-1" + "\n")
+end	
+
+function neg ()
+    result.writeText("@SP" 
+	                   + "\n" + "A=M-1" 
+                       + "\n" + "M=-M" + "\n")
+end	
+
+function eq ()
+    result.writeText("@SP" + "\n" + "A=M-1" 
+	                       + "\n" + "D=M"
+                           + "\n" + "A=A-1" 
+						   + "\n" + "D=M-D"
+                           + "\n" + "@TRUE" + true_label
+                           + "\n" + "D;JGT" 
+						   + "\n" + "D=0"
+                           + "\n" + "@FALSE" + false_label 
+                           + "\n" + "0;JMP" 
+						   + "\n" +  "(TRUE" + true_label + ")"
+                           + "\n" + "D=-1"
+                           + "\n" + "(FALSE + false_label + ")"
+                           + "\n" + "@SP"
+                           + "\n" + "M=M-1"
+                           + "\n" + "@SP"
+                           + "\n" + "M=M-1"
+                           + "\n" + "@SP"
+                           + "\n" + "A=M-1"
+                           + "\n" + "M=D" + "\n")
+	++true_label
+    ++false_label
+end
+
+function gt ()
+    result.writeText("@SP" + "\n" + "A=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "A=A-1"
+						   + "\n" + "D=M-D"
+						   + "\n" + "@True" + true_label
+						   + "\n" + "D;JGT" 
+						   + "\n" + "D=0"
+						   + "\n" + "@FALSE" + false_label
+						   + "\n" + "0;JMP"
+						   + "\n" + "(TRUE" + true_label + ")"
+						   + "\n" + "D=-1"
+						   + "\n" + "(FALSE + false_label + ")"
+						   + "\n" + "@SP"
+						   + "\n" + "M=M-1"
+						   + "\n" + "@SP"
+						   + "\n" + "A=M-1"
+						   + "\n" + "M=D" + "\n")
+	++true_label
+    ++false_label
+end	
+
+function lt ()
+    result.writeText("@SP" + "\n" + "A=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "A=A-1"
+						   + "\n" + "D=M-D"
+						   + "\n" + "@TRUE" + true_label
+						   + "\n" + "D;JLT"
+						   + "\n" + "D=0"
+						   + "\n" + "@FALSE" + false_label
+						   + "\n" + "0;JMP"
+						   + "\n" + "(TRUE" + true_label + ")"
+						   + "\n" + "D=-1"
+						   + "\n" + "(FALSE" + false_label + ")"
+						   + "\n" + "@SP" 
+						   + "\n" + "M=M-1"
+						   + "\n" + "@SP"
+						   + "\n" + "A=M-1"
+						   + "\n" + "M=D" + "\n")
+	++true_label
+    ++false_label	
+end	
+                              						   
+function and ()
+    result.writeText("@SP" + "\n" + "A=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D&M"
+						   + "\n" + "@SP"
+						   + "\n" + "M=M-1" + "\n")
+end		
+
+function or ()
+    result.writeText("@SP" + "\n" + "A=M-1"
+                           + "\n" + "M=!M" + "\n")
+end
+
+function push (key, value)
+    switch key
+	    case "local", "argument", "this", "that"
+		    result.writeText("@" + dict[key] 
+			                     + "\n" + "D=M"
+								 + "\n" + "@" + value
+								 + "\n" + "A=D+A"
+								 + "\n" + "D=M" + "\n")
+		case "temp"
+            result.writeText("@S" + "\n" + "D=A" 
+			                      + "\n" + "@" + value
+                                  + "\n" + "A=D+A"
+                                  + "\n" + "D=M" + "\n")								  
+		case "static"
+            result.writeText("@" + str + "." + value 
+			                     + "\n" + "D=M" + "\n")
+        
+		case "pointer"
+		    switch (value)
+			    case "0"
+				    result.writeText("@THIS" + "\n")
+				case "1"
+                    result.writeText("@THAT" + "\n")     
+			end
+			result.writeText("D=M" + "\n")
+		case "constant"
+            result.writeText("@" + value 
+			                     + "\n" + "D=A" + "\n")
+							 
+            			
+	end
+	result.writeText("@SP" + "\n" + "A=M"
+	                       + "\n" + "M=D"
+						   + "\n" + "@SP"
+						   + "\n" + "M=M+1" + "\n")
+end	
+
+function pop (key, value)
+    switch key
+	    case "local", "argument", "this", "that"
+		    result.writeText("@" + dict[key] 
+			                     + "\n" + "D=M"
+								 + "\n" + "@" + value
+								 + "\n" + "D=D+A"
+								 + "\n" + @R13"
+								 + "\n" + "M=D"
+								 + "\n" + "@SP"
+								 + "\n" + "A=M-1"
+								 + "\n" + "D=M"
+								 + "\n" + "@R13"
+								 + "\n" + "A=M"
+								 + "\n" + "M=D"
+								 + "\n" + "@SP"
+								 + "\n" + "M=M-1" + "\n")
+		case "temp"
+		    newValue = 5 + int (value)
+            result.writeText("@SP" + "\n" + "A=M-1"
+                                   + "\n" + "D=M"
+                                   + "\n" + "@" + newValue
+                                   + "\n" + "M=D"
+                                   + "\n" + "@SP"
+                                   + "\n" + "M=M-1" + "\n") 
+        case "static" 
+            result.writeText("@SP" + "\n" + "A=M-1"
+                                   + "\n" + "D=M"
+                                   + "\n" + "@" + str + "." + value 
+								   + "\n" + "M=D" 
+								   + "\n" + "@SP"
+								   + "\n" + "M=M-1" + "\n")
+        case "pointer"
+            result.writeText("@SP" + "\n" + "A=M-1"
+                                   + "\n" + "D=M" + "\n")
+            switch value
+			    case 0
+				    result.writeText("@THIS" + "\n")
+				case 1
+                    result.writeText("@THAT" + "\n")			
+            end	
+            result.writeText("M=D" + "\n" + "@SP"
+                                   + "\n" + "M=M-1" + "\n")			
+	end							 
+end 					   
+                       
