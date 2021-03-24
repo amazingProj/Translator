@@ -16,8 +16,23 @@ false_label = 0
 dict = [ "local" => "LCL", "argument" => "ARG", "this" => "THIS",
           "that" => "THAT" ]
 
-str = ""
+input_path = ""
 /********** operation functions **************/
+
+/**
+*  if I have the string: "buy milk 8 9.8" called exam
+*  for exam[0:] returns 5
+*/
+function next_space_index (str, serial_space_number)
+    num = serial_space_number
+    i = 0
+	while str[i] != " " && num == 0
+	    ++i
+		--num
+	end	
+    return i
+end
+
 function add ()
     result.writeText("@SP" 
 	                     + "\n" + "A=M-1" 
@@ -140,7 +155,7 @@ function push (key, value)
                                   + "\n" + "A=D+A"
                                   + "\n" + "D=M" + "\n")								  
 		case "static"
-            result.writeText("@" + str + "." + value 
+            result.writeText("@" + input_path + "." + value 
 			                     + "\n" + "D=M" + "\n")
         
 		case "pointer"
@@ -191,7 +206,7 @@ function pop (key, value)
         case "static" 
             result.writeText("@SP" + "\n" + "A=M-1"
                                    + "\n" + "D=M"
-                                   + "\n" + "@" + str + "." + value 
+                                   + "\n" + "@" + input_path + "." + value 
 								   + "\n" + "M=D" 
 								   + "\n" + "@SP"
 								   + "\n" + "M=M-1" + "\n")
@@ -208,4 +223,34 @@ function pop (key, value)
                                    + "\n" + "M=M-1" + "\n")			
 	end							 
 end 					   
-                       
+
+f = InputStream(input_path)
+for line in f.grabLine  
+    op = line[0:serial_space_number(line, 1) - 1]
+    switch op
+        case "add"
+		    add()
+		case "sub"
+            sub()
+		case "neg"
+            neg()
+		case "eq"
+            eq()
+        case "gt"	
+            gt()
+        case "lt"
+            lt()
+        case "and"
+            and()
+        case "or"
+            or()
+        case "push"
+            data1 = line[serial_space_number(line, 1):serial_space_number(line, 2) - 1]		
+			data2 = line[serial_space_number(line, 2), serial_space_number(line, 3) - 1]
+            push(data1, data2)
+		case "pop"	
+		    data1 = line[serial_space_number(line, 1):serial_space_number(line, 2) - 1]		
+			data2 = line[serial_space_number(line, 2), serial_space_number(line, 3) - 1]
+            pop(data1, data2)
+	end	
+end						  
