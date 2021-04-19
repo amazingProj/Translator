@@ -1,12 +1,11 @@
-
 /*************************************
 * Building a Compiler 
 * translate VM into assembly
 **************************************/
 
 /*************** Files **************/
-output_path = "C:\\Users\\asaf0\\Desktop\\PPL\\object.asm"
-result = OutputStream(path)
+output_path = "C:\\Users\\elhan\\Documents\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.asm"
+result = OutputStream(output_path)
 
 /********** variables ***********/
 /// number of true label for example: @TRUE1, @TRUE2 ...
@@ -16,7 +15,7 @@ false_label = 0
 dict = [ "local" => "LCL", "argument" => "ARG", "this" => "THIS",
           "that" => "THAT" ]
 
-input_path = ""
+input_path = "C:\\Users\\elhan\\Documents\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.vm"
 /********** operation functions **************/
 
 /**
@@ -24,12 +23,25 @@ input_path = ""
 *  for exam[0:] returns 5
 */
 function next_space_index (str, serial_space_number)
-    num = serial_space_number
     i = 0
-	while str[i] != " " && num == 0
-	    ++i
-		--num
-	end	
+	num = serial_space_number
+	if str == ""
+		return 0;
+	end
+	while num != 0 
+	    
+		try
+			if str[i+1] == ""
+			end
+		catch
+			i = i + 2
+			break
+		end
+		if str[i] == " "
+			num--
+		end
+		++i
+	end
     return i
 end
 
@@ -59,31 +71,32 @@ function neg ()
                        + "\n" + "M=-M" + "\n")
 end	
 
-function eq ()
-    result.writeText("@SP" + "\n" + "A=M-1" 
-	                       + "\n" + "D=M"
-                           + "\n" + "A=A-1" 
-						   + "\n" + "D=M-D"
-                           + "\n" + "@TRUE" + true_label
-                           + "\n" + "D;JGT" 
-						   + "\n" + "D=0"
-                           + "\n" + "@FALSE" + false_label 
-                           + "\n" + "0;JMP" 
-						   + "\n" +  "(TRUE" + true_label + ")"
-                           + "\n" + "D=-1"
-                           + "\n" + "(FALSE + false_label + ")"
-                           + "\n" + "@SP"
-                           + "\n" + "M=M-1"
-                           + "\n" + "@SP"
-                           + "\n" + "M=M-1"
-                           + "\n" + "@SP"
-                           + "\n" + "A=M-1"
-                           + "\n" + "M=D" + "\n")
+function equ ()
+    result.writeText("@SP" 
+						+ "\n" + "A=M-1" 
+						+ "\n" + "D=M"
+						+ "\n" + "A=A-1" 
+						+ "\n" + "D=M-D"
+                        + "\n" + "@TRUE" + true_label
+                        + "\n" + "D;JGT" 
+						+ "\n" + "D=0"
+                        + "\n" + "@FALSE" + false_label 
+                        + "\n" + "0;JMP" 
+						+ "\n" +  "(TRUE" + true_label + ")"
+                        + "\n" + "D=-1"
+                        + "\n" + "(FALSE" + false_label + ")"
+                        + "\n" + "@SP"
+                        + "\n" + "M=M-1"
+                        + "\n" + "@SP"
+                        + "\n" + "M=M-1"
+                        + "\n" + "@SP"
+                        + "\n" + "A=M-1"
+                        + "\n" + "M=D" + "\n")
 	++true_label
     ++false_label
 end
 
-function gt ()
+function grt ()
     result.writeText("@SP" + "\n" + "A=M-1"
 	                       + "\n" + "D=M"
 						   + "\n" + "A=A-1"
@@ -95,7 +108,7 @@ function gt ()
 						   + "\n" + "0;JMP"
 						   + "\n" + "(TRUE" + true_label + ")"
 						   + "\n" + "D=-1"
-						   + "\n" + "(FALSE + false_label + ")"
+						   + "\n" + "(FALSE" + false_label + ")"
 						   + "\n" + "@SP"
 						   + "\n" + "M=M-1"
 						   + "\n" + "@SP"
@@ -105,7 +118,7 @@ function gt ()
     ++false_label
 end	
 
-function lt ()
+function llt ()
     result.writeText("@SP" + "\n" + "A=M-1"
 	                       + "\n" + "D=M"
 						   + "\n" + "A=A-1"
@@ -127,7 +140,7 @@ function lt ()
     ++false_label	
 end	
                               						   
-function and ()
+function andf ()
     result.writeText("@SP" + "\n" + "A=M-1"
 	                       + "\n" + "D=M"
 						   + "\n" + "A=A-1"
@@ -136,7 +149,7 @@ function and ()
 						   + "\n" + "M=M-1" + "\n")
 end		
 
-function or ()
+function orf ()
     result.writeText("@SP" + "\n" + "A=M-1"
                            + "\n" + "M=!M" + "\n")
 end
@@ -150,12 +163,12 @@ function push (key, value)
 								 + "\n" + "A=D+A"
 								 + "\n" + "D=M" + "\n")
 		case "temp"
-            result.writeText("@S" + "\n" + "D=A" 
+            result.writeText("@5" + "\n" + "D=A" 
 			                      + "\n" + "@" + value
                                   + "\n" + "A=D+A"
                                   + "\n" + "D=M" + "\n")								  
 		case "static"
-            result.writeText("@" + input_path + "." + value 
+            result.writeText("@" + "StaticTest" + "." + value 
 			                     + "\n" + "D=M" + "\n")
         
 		case "pointer"
@@ -185,7 +198,7 @@ function pop (key, value)
 			                     + "\n" + "D=M"
 								 + "\n" + "@" + value
 								 + "\n" + "D=D+A"
-								 + "\n" + @R13"
+								 + "\n" + "@R13"
 								 + "\n" + "M=D"
 								 + "\n" + "@SP"
 								 + "\n" + "A=M-1"
@@ -206,7 +219,7 @@ function pop (key, value)
         case "static" 
             result.writeText("@SP" + "\n" + "A=M-1"
                                    + "\n" + "D=M"
-                                   + "\n" + "@" + input_path + "." + value 
+                                   + "\n" + "@" + "StaticTest" + "." + value 
 								   + "\n" + "M=D" 
 								   + "\n" + "@SP"
 								   + "\n" + "M=M-1" + "\n")
@@ -226,31 +239,37 @@ end
 
 f = InputStream(input_path)
 for line in f.grabLine  
-    op = line[0:serial_space_number(line, 1) - 1]
+    op = line[0:next_space_index(line, 1)-1]
+	> op
     switch op
         case "add"
+			> "addp"
 		    add()
 		case "sub"
+		> "subp"
             sub()
 		case "neg"
             neg()
 		case "eq"
-            eq()
+            equ()
         case "gt"	
-            gt()
+            grt()
         case "lt"
-            lt()
+            llt()
         case "and"
-            and()
+            andf()
         case "or"
-            or()
+            orf()
         case "push"
-            data1 = line[serial_space_number(line, 1):serial_space_number(line, 2) - 1]		
-			data2 = line[serial_space_number(line, 2), serial_space_number(line, 3) - 1]
+		> "pushp"
+            data1 = line[next_space_index(line, 1):next_space_index(line, 2) - 1]		
+			data2 = line[next_space_index(line, 2): next_space_index(line, 3) - 1]
+			> data1 + " " + data2
             push(data1, data2)
-		case "pop"	
-		    data1 = line[serial_space_number(line, 1):serial_space_number(line, 2) - 1]		
-			data2 = line[serial_space_number(line, 2), serial_space_number(line, 3) - 1]
+		case "popp"	
+		    data1 = line[next_space_index(line, 1) : next_space_index(line, 2) - 1]		
+			data2 = line[next_space_index(line, 2) : next_space_index(line, 3) - 1]
+			> data1 + " " + data2
             pop(data1, data2)
 	end	
 end						  
