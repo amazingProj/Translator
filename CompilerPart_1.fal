@@ -1,10 +1,11 @@
 /*************************************
 * Building a Compiler 
 * translate VM into assembly
+* Assaf David Hillel and Elchanan Brisk
 **************************************/
 
 /*************** Files **************/
-output_path = "C:\\Users\\elhan\\Documents\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.asm"
+output_path = "C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\SimpleAdd.asm"
 result = OutputStream(output_path)
 
 /********** variables ***********/
@@ -15,7 +16,7 @@ false_label = 0
 dict = [ "local" => "LCL", "argument" => "ARG", "this" => "THIS",
           "that" => "THAT" ]
 
-input_path = "C:\\Users\\elhan\\Documents\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.vm"
+
 /********** operation functions **************/
 
 /**
@@ -235,41 +236,51 @@ function pop (key, value)
             result.writeText("M=D" + "\n" + "@SP"
                                    + "\n" + "M=M-1" + "\n")			
 	end							 
-end 					   
+end 			
 
-f = InputStream(input_path)
-for line in f.grabLine  
-    op = line[0:next_space_index(line, 1)-1]
-	> op
-    switch op
-        case "add"
+path = "C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\SimpleAdd.vm"
+		   
+function RunProgram (input_path)
+    f = InputStream(path)
+    for line in f.grabLine  
+        op = line[0:next_space_index(line, 1)-1]
+	    > op
+        switch op
+            case "add"
 			> "addp"
 		    add()
-		case "sub"
-		> "subp"
+		    case "sub"
+		    > "subp"
             sub()
-		case "neg"
+		    case "neg"
             neg()
-		case "eq"
+		    case "eq"
             equ()
-        case "gt"	
+            case "gt"	
             grt()
-        case "lt"
+            case "lt"
             llt()
-        case "and"
+            case "and"
             andf()
-        case "or"
+            case "or"
             orf()
-        case "push"
-		> "pushp"
-            data1 = line[next_space_index(line, 1):next_space_index(line, 2) - 1]		
-			data2 = line[next_space_index(line, 2): next_space_index(line, 3) - 1]
-			> data1 + " " + data2
-            push(data1, data2)
-		case "popp"	
-		    data1 = line[next_space_index(line, 1) : next_space_index(line, 2) - 1]		
-			data2 = line[next_space_index(line, 2) : next_space_index(line, 3) - 1]
-			> data1 + " " + data2
-            pop(data1, data2)
-	end	
-end						  
+            case "push"
+		    > "pushp"
+                data1 = line[next_space_index(line, 1):next_space_index(line, 2) - 1]		
+			    data2 = line[next_space_index(line, 2): next_space_index(line, 3) - 1]
+			    > data1 + " " + data2
+                push(data1, data2)
+		    case "popp"	
+		        data1 = line[next_space_index(line, 1) : next_space_index(line, 2) - 1]		
+			    data2 = line[next_space_index(line, 2) : next_space_index(line, 3) - 1]
+			    > data1 + " " + data2
+                pop(data1, data2)
+	        end	
+    end		
+end
+
+
+RunProgram(	 "C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\SimpleAdd.vm"  )		
+
+
+
