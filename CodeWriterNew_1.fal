@@ -1,0 +1,299 @@
+/*************************************
+* Building a Compiler 
+* translate VM into assembly
+**************************************/
+
+
+
+/******** Functions ********/
+function get_register_name (segment, index)
+    dict = [ "local" => "LCL", "argument" => "ARG", "this" => "THIS",
+          "that" => "THAT" ]
+    if segment == "pointer" 
+	    return "R" + 3 + index
+    elif segment == "temp"   
+	    return "R" + 5 + index
+    else	
+	    return dict[segment]
+    end	
+end
+function set_output_file (new_output_path)
+	global output_file_path 
+	output_file_path = new_output_path
+end
+
+function set_input_file (new_input_path)
+	global input_file_path
+	input_file_path = new_input_path
+end
+
+function add ()
+    result = OutputStream(output_file_path)
+    result.writeText("@SP" + "\n" + "AM=M-1" 
+						 + "\n" + "D=M" 
+						 + "\n" + "A=A-1"
+						 + "\n" + "M=D+M" + "\n")
+end
+
+function sub ()
+    result = OutputStream(output_file_path)
+    result.writeText("@SP" + "\n" + "AM=M-1" 
+					   + "\n" + "D=M" 
+					   + "\n" + "A=A-1"
+					   + "\n" + "M=M-D" + "\n")
+end	
+
+function neg ()
+    result = OutputStream(output_file_path)
+    result.writeText("@SP" + "\n" + "A=M" 
+                       + "\n" + "A=A-1" + "\n" + "M=-M" + "\n")
+end	
+
+function arithmetic_eq ()
+    global symbol_label_counter
+    result = OutputStream(output_file_path)
+	label = "NewLabel" + symbol_label_counter
+    result.writeText("@SP" + "\n" + "AM=M-1" 
+						+ "\n" + "D=M"
+						+ "\n" + "@SP"
+						+ "\n" + "AM=M-1" 					
+						+ "\n" + "D=M-D"
+                        + "\n" + "@" + label
+                        + "\n" + "D;JEQ" 
+						+ "\n" + "D=1"
+						+  "\n" + "(" + label + ")"
+                        + "\n" + "D=-1"          
+                        + "\n" + "@SP"
+                        + "\n" + "A=M"
+						+ "\n" + "M=D"
+                        + "\n" + "@SP"
+                        + "\n" + "M=M+1" + "\n")
+						
+	++symbol_label_counter					
+end
+
+function arithmetic_gt ()
+    global symbol_label_counter
+    label_true  = "JGT_TRUE_" + "NewLabel" + "_" + symbol_label_counter
+	label_false = "JGT_FALSE_" + "NewLabel" + "_" + symbol_label_counter
+	result = OutputStream(output_file_path)
+	result.writeText("@SP" + "\n" + "AM=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "@SP"
+						   + "\n" + "AM=M-1"
+						   + "\n" + "D=M-D"
+						   + "\n" + "@" + label_true
+						   + "\n" + "D;JGT" 
+						   + "\n" + "D=0"
+						   + "\n" + "@" + label_false
+						   + "\n" + "0;JMP"
+						   + "\n" + "(" + label_true + ")"
+						   + "\n" + "D=-1"
+						   + "\n" + "\t" + "(" + label_false + ")"
+						   + "\n" + "@SP"
+						   + "\n" + "A=M"
+						   + "\n" + "M=D"
+						   + "\n" + "@SP" 
+						   + "\n" + "M=M+1" + "\n")
+						   
+						   
+	++symbol_label_counter					   
+	
+end
+
+function arithmetic_lt ()
+    global symbol_label_counter	
+    label_true  = "JGT_TRUE_" + "NewLabel" + "_" + symbol_label_counter
+	label_false = "JGT_FALSE_" + "NewLabel" + "_" + symbol_label_counter
+	result = OutputStream(output_file_path)
+	result.writeText("@SP" + "\n" + "AM=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "@SP"
+						   + "\n" + "AM=M-1"
+						   + "\n" + "D=M-D"
+						   + "\n" + "@" + label_true
+						   + "\n" + "D;JLT" 
+						   + "\n" + "D=0"
+						   + "\n" + "@" + label_false
+						   + "\n" + "0;JMP"
+						   + "\n" + "(" + label_true + ")"
+						   + "\n" + "D=-1"
+						   + "\n" + "(" + label_false + ")"
+						   + "\n" + "@SP"
+						   + "\n" + "A=M"
+						   + "\n" + "M=D"
+						   + "\n" + "@SP" 
+						   + "\n" + "M=M+1" + "\n")
+					   
+	++symbol_label_counter					   
+end
+
+function arithmetic_and ()
+    result = OutputStream(output_file_path)
+    result.writeText("@SP" + "\n" + "AM=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D&M" + "\n")
+end
+
+function arithmetic_or ()
+    result = OutputStream(output_file_path)
+	result.writeText("@SP" + "\n" + "AM=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D|M" + "\n")
+end
+
+function arithmetic_not ()
+    result = OutputStream(output_file_path)
+	result.writeText("@SP" + "\n" + "A=M"
+	                       + "\n" + "A=A-1"
+						   + "\n" + "M=!M" + "\n")
+end
+
+function push (segment, index)
+    register_name = get_register_name(segment, index)
+	result = OutputStream(output_file_path)
+	switch (segment)
+	case "constant"
+	    result.writeText("@" + index + " "+ segment + " " + index
+		                   + "\n" + "D=A"
+	                       + "\n" + "@SP"
+						   + "\n" + "A=M" 
+						   + "\n" + "M=D"
+	                       + "\n" + "@SP"
+						   + "\n" + "M=M+1" + "\n")
+	case "static", "temp", "pointer"
+         result.writeText("@" + register_name + " "+ segment + " " + index
+		                   + "\n" + "D=M"
+						   + "\n" + "@" + index
+						   + "\n" + "A=D+A"
+						   + "\n" + "D=M" 
+	                       + "\n" + "@SP"
+						   + "\n" + "A=M" 
+						   + "\n" + "M=D"
+	                       + "\n" + "@SP"
+						   + "\n" + "M=M+1" + "\n")	
+	default
+        result.writeText("@" + register_name + " "+ segment + " " + index
+		                   + "\n" + "D=M"
+						   + "\n" + "@" + index
+						   + "\n" + "A=D+A"
+						   + "\n" + "D=M" 
+	                       + "\n" + "@SP"
+						   + "\n" + "A=M" 
+						   + "\n" + "M=D"
+	                       + "\n" + "@SP"
+						   + "\n" + "M=M+1" + "\n")		
+	end	
+end
+
+function pop (segment, index)
+    register_name = get_register_name(segment, index)
+	result = OutputStream(output_file_path)
+	
+	switch (segment)
+	    case "static", "temp", "pointer"
+		     result.writeText("@SP" + " "+ segment + " " + index
+		                   + "\n" + "AM=M-1"
+						   + "\n" + "D=M" 
+	                       + "\n" + "@" + register_name
+						   + "\n" + "M=D" + "\n")	
+		default
+            result.writeText("@" + " "+ register_name + " " 
+			               + segment + " " + index
+						   + "\n" + "D=M" 
+	                       + "\n" + "@" + register_name
+						   + "\n" + "D=D+A" 
+						   + "\n" + "@R13" 
+						   + "\n" + "M=D" 
+						   + "\n" + "@SP" 
+						   + "\n" + "AM=M-1"
+                           + "\n" + "D=M"
+                           + "\n" + "@R13"   						   
+						   + "\n" + "A=M"
+						   + "\n" + "M=D"  + "\n")			
+	end
+end
+function writeArithmetic (command, data1, data2)
+    switch (command)
+	    case "add"
+		    add()
+		case "sub"
+            sub()		
+	    case "neg"
+		    neg()
+		case "eq"
+            arithmetic_eq()
+        case "gt"
+            arithmetic_gt()
+        case "lt"
+		    arithmetic_lt()
+        case "and"
+		    arithmetic_and()
+		case "or"
+		    arithmetic_or()	
+		case "not"
+		    arithmetic_not()
+		case "push"
+		    push(data1, data2)
+		case "pop"
+		    pop(data1, data2)
+	
+	end
+end
+
+function vm_to_assembly ()
+    > input_file_path
+	> output_file_path
+    f = InputStream(input_file_path)
+    for line in f.grabLine  
+    op = strSplit(line, " ")
+	> op 
+	data1= ""
+	data2 = 0
+	if op == "push" //|| op == "pop"
+	    data1, data2 = strSplit(line[4:], " ")	
+	end
+	if op == "pop"
+	    data1, data2 = strSplit(line[3:], " ")
+	end
+	writeArithmetic(op, data1, data2)
+    
+    end		
+end
+
+/********** operation functions **************/
+
+function run_tests ()
+    set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\BasicTest\\BasicTest.vm")
+    set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\BasicTest\\BasicTest.asm")
+	vm_to_assembly()
+	> "finish test one" 
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\PointerTest\\PointerTest.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\PointerTest\\PointerTest.asm")
+    vm_to_assembly()
+	> "finish test two"
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\StaticTest\\StaticTest.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\StaticTest\\StaticTest.asm")
+    vm_to_assembly()
+	> "finish test three"
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\SimpleAdd\\SimpleAdd.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\SimpleAdd\\SimpleAdd.asm")
+    vm_to_assembly()
+	> "finish test four"
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\StackTest\\StackTest.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\StackTest\\StackTest.asm")
+    vm_to_assembly()
+	> "finish test five"
+end
+
+/******** Files & variables intialize  *******/
+
+output_file_path = ""
+input_file_path = ""
+symbol_label_counter = 0
+
+
+
+run_tests()
