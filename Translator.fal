@@ -1,0 +1,439 @@
+/*************************************
+* Building a Compiler 
+* translate VM into assembly
+**************************************/
+
+
+
+/******** Functions ********/
+
+function next_space_index (str, serial_space_number)
+    i = 0
+	num = serial_space_number
+	if str == ""
+		return 0;
+	end
+	while num != 0 
+	    
+		try
+			if str[i+1] == ""
+			end
+		catch
+			i = i + 2
+			break
+		end
+		if str[i] == " "
+			num--
+		end
+		++i
+	end
+    return i
+end
+
+function set_output_file (new_output_path)
+	global output_file_path 
+	global result
+	output_file_path = new_output_path
+	result = OutputStream(output_file_path)
+end
+
+function set_input_file (new_input_path)
+	global input_file_path
+	input_file_path = new_input_path
+end
+
+function add ()
+    result.writeText("@SP" + "\n" + "A=M-1" 
+						 + "\n" + "D=M" 
+						 + "\n" + "@SP"
+						 + "\n" + "M=M-1"
+						 + "\n" + "@SP" 
+						 + "\n" + "A=M-1"
+						 + "\n" + "M=M+D" + "\n")
+end
+
+function sub ()
+    result.writeText("@SP" + "\n" + "A=M-1" 
+					   + "\n" + "D=M" 
+					   + "\n" + "@SP"
+					   + "\n" + "M=M-1"
+					   + "\n" + "@SP"
+					   + "\n" + "A=M-1"
+					   + "\n" + "M=M-D" + "\n")
+end	
+
+function neg ()
+    result.writeText("@SP" + "\n" + "A=M-1" 
+                       + "\n" + "M=-M" + "\n")
+end	
+
+function arithmetic_eq ()
+    global symbol_label_counter
+    result.writeText("@SP" + "\n" + "A=M-1" 
+						+ "\n" + "D=M"
+						+ "\n" + "@SP"
+						+ "\n" + "M=M-1" 					
+						+ "\n" + "A=M-1"
+						+ "\n" + "D=D-M"
+                        + "\n" + "@EQ_TRUE" + symbol_label_counter
+                        + "\n" + "D;JEQ" 
+						+ "\n" + "0"
+						+ "\n" + "D=A"
+						+ "\n" + "@SP"
+						+ "\n" + "A=M-1"
+						+ "\n" + "M=D"
+						+ "\n" + "@EQ_FALSE" + symbol_label_counter
+						+ "\n" + "0;JMP"
+						+ "\n" + "(EQ_TRUE" + symbol_label_counter + ")"
+						+ "\n" + "@SP"
+						+ "\n" + "A=M-1"
+						+ "\n" + "M=D-1"
+						+ "\n" + "(EQ_FALSE" + symbol_label_counter + ")"
+						 + "\n")
+						
+	++symbol_label_counter					
+end
+
+function arithmetic_gt ()
+    global symbol_label_counter
+	sub()
+	file = output_file_path[0:-4]
+	result.writeText("D=M"
+						   + "\n" + "@IF_TRUE" + file + symbol_label_counter)
+	++symbol_label_counter
+	result.writeText( "\n" + "D;JGT" 
+						   + "\n" + "@0"
+						   + "\n" + "A=M"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=0"
+						   + "\n" + "@END" + file + symbol_label_counter + "\n")
+	++symbol_label_counter
+	count1 = symbol_label_counter-2	
+    count2 = symbol_label_counter-1	
+	result.writeText("D;JMP" + "\n" + "IF_TRUE" + file + count1 + ")"
+											 + "\n" + "@0"
+											 + "\n" + "A=M"
+											 + "\n" + "A=A-1"
+											 + "\n" + "M=-1"
+											 + "\n" + "(END" + file + count1 + ")" + "\n")			   
+	++symbol_label_counter				   
+	
+end
+
+function arithmetic_lt ()
+    global symbol_label_counter	
+	file = output_file_path[0:-4]
+	sub()
+	result.writeText("@SP" + "\n" + "D=M"
+	                       + "\n" + "@IF_TRUE" + file + "." + symbol_label_counter
+						   + "\n")
+	++symbol_label_counter
+	result.writeText("@SP"  + "\n" + "D;JLT"
+	                        + "\n" + "@0" 
+						    + "\n" + "A=M"
+                            + "\n" + "A=A-1"
+                            + "\n" + "M=0"
+                            + "\n" + "@END" + file + symbol_label_counter							
+						    + "\n")	
+    ++symbol_label_counter	
+    count1 = symbol_label_counter-2	
+    count2 = symbol_label_counter-1		
+	result.writeText("@SP"  + "\n" + "D;JMP"
+	                        + "\n" + "(IF_TRUE" + file + count1 + ")" 
+						    + "\n" + "@0"
+                            + "\n" + "A=M"
+                            + "\n" + "A=A-1"
+							+ "\n" + "M=-1"
+                            + "\n" + "(END" + file + count2 + ")" + "\n")					   
+	++symbol_label_counter					   
+end
+
+function arithmetic_and ()
+    result.writeText("@SP" + "\n" + "A=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "@SP"
+						   + "\n" + "M=M-1"
+				           + "\n" + "A=M-1"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D&M" + "\n")
+end
+
+function arithmetic_or ()
+	result.writeText("@SP" + "\n" + "A=M-1"
+	                       + "\n" + "D=M"
+						   + "\n" + "@SP"
+						   + "\n" + "M=M-1"
+				           + "\n" + "A=M-1"
+						   + "\n" + "M=D|M" + "\n")
+end
+
+function arithmetic_not ()
+	result.writeText("@SP" + "\n" + "A=A-1"
+						   + "\n" + "M=!M" + "\n")
+end
+
+function push (segment, index)
+	global file
+	switch (segment)
+	    case "constant"
+	    result.writeText("@" + index 
+		                   + "\n" + "D=A"
+	                       + "\n" + "@SP"
+						   + "\n" + "M=M+1" 
+						   + "\n" + "A=M-1"
+	                       + "\n" + "M=D"
+						   + "\n")
+	    case "static"	
+	        file = output_file_path[0:-4]
+            result.writeText("@" + file + "." + index
+		                   + "\n" + "D=M"
+						   + "\n" + "@SP"
+						   + "\n" + "AM=M+1"
+						   + "\n" + "A=A-1" 
+	                       + "\n" + "M=D"
+						   + "\n")	
+	    case "temp"	
+	     result.writeText("@" + index
+		                   + "\n" + "D=A"
+						   + "\n" + "@5"
+						   + "\n" + "A=A+D"
+						   + "\n" + "D=M" 
+						   + "\n" + "@SP"
+						   + "\n" + "A=M"
+						   + "\n" + "M=D"
+	                       + "\n" + "@SP"
+						   + "\n" + "M=M+1"
+						   + "\n")		
+         case "pointer"	
+	     result.writeText("@3"
+		                   + "\n" + "D=A"
+						   + "\n" + "@" + index
+						   + "\n" + "A=A+D"
+						   + "\n" + "D=M" 
+						   + "\n" + "@SP"
+						   + "\n" + "AM=M+1"
+						   + "\n" + "A=A-1"
+	                       + "\n" + "M=D"
+						   + "\n")		
+	    case "that"
+        result.writeText("@THAT"
+		                   + "\n" + "D=M"
+						   + "\n" + "@" + index
+						   + "\n" + "A=A+D"
+						   + "\n" + "D=M" 
+						   + "\n" + "@SP"
+						   + "\n" + "AM=M+1"
+						   + "\n" + "A=A-1"
+	                       + "\n" + "M=D"
+						   + "\n")	
+	case "this"
+        result.writeText("@THIS"
+		                   + "\n" + "D=M"
+						   + "\n" + '@' + index
+						   + "\n" + "A=A+D"
+						   + "\n" + "D=M" 
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M+1"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D"
+						   + "\n")	
+	    case "argument"
+		result.writeText("@ARG"
+		                   + "\n" + "D=M"
+						   + "\n" + '@' + index
+						   + "\n" + "A=A+D"
+						   + "\n" + "D=M" 
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M+1"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D"
+						   + "\n")	
+	    case "local"	
+        result.writeText("@LCL"
+		                   + "\n" + "D=M"
+						   + "\n" + '@' + index
+						   + "\n" + "A=A+D"
+						   + "\n" + "D=M" 
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M+1"
+						   + "\n" + "A=A-1"
+						   + "\n" + "M=D"
+						   + "\n")								   
+	end	
+end
+
+function pop (segment, index)
+	switch (segment)
+	    case "argument"
+		    result.writeText("@ARG"
+		                   + "\n" + "D=M"
+						   + "\n" + "@" + index
+						   + "\n" + "D=A+D"
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M-1"
+						   + "\n" + "A=M"
+						   + "\n" + "D=D+A"
+						   + "\n" + "A=D-A"
+						   + "\n" + "D=D-A"
+						   + "\n" + "M=D"
+						   + "\n")	
+	
+	    case "local"
+		    result.writeText("@LCL"
+		                   + "\n" + "A=M"
+						   + "\n" + "D=A"
+						   + "\n" + '@' + index
+						   + "\n" + "D=A+D"
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M-1"
+						   + "\n" + "A=M"
+						   + "\n" + "D=D+A"
+						   + "\n" + "A=D-A"
+						   + "\n" + "D=D-A"
+						   + "\n" + "M=D"
+						   + "\n")	
+		     
+		case "static"
+            result.writeText("@SP" + "\n" + "AM=M-1"
+						   + "\n" + "D=M"
+						   + '@' + file + '.' + index
+						   + "\n" + "M=D"
+						   + "\n")	
+        case "this"
+            result.writeText("@THIS"
+		                   + "\n" + "A=M"
+						   + "\n" + "D=A"
+						   + "\n" + '@' + index
+						   + "\n" + "D=A+D"
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M-1"
+						   + "\n" + "A=M"
+						   + "\n" + "D=D+A"
+						   + "\n" + "A=D-A"
+						   + "\n" + "D=D-A"
+						   + "\n" + "M=D"
+						   + "\n")
+        case "that"
+            result.writeText("@THAT"
+		                   + "\n" + "A=M"
+						   + "\n" + "D=A"
+						   + "\n" + "@" + index
+						   + "\n" + "D=A+D"
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M-1"
+						   + "\n" + "A=M"
+						   + "\n" + "D=D+A"
+						   + "\n" + "A=D-A"
+						   + "\n" + "D=D-A"
+						   + "\n" + "M=D"
+						   + "\n")		
+		case "pointer"	
+	        result.writeText("@3"
+		                   + "\n" + "D=A"
+						   + "\n" + "@" + index
+						   + "\n" + "D=D+A"
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M-1"
+						   + "\n" + "A=M"
+						   + "\n" + "D=D+A"
+						   + "\n" + "A=D-A"
+						   + "\n" + "D=D-A"
+						   + "\n" + "M=D"
+						   + "\n")
+        case "temp"
+             result.writeText("@5"
+		                   + "\n" + "D=A"
+						   + "\n" + "@" + index
+						   + "\n" + "D=D+A"
+						   + "\n" + "@SP" 
+	                       + "\n" + "AM=M-1"
+						   + "\n" + "A=M"
+						   + "\n" + "D=D+A"
+						   + "\n" + "A=D-A"
+						   + "\n" + "D=D-A"
+						   + "\n" + "M=D"
+						   + "\n")	
+	end
+end
+function writeArithmetic (command, data1, data2)
+    switch (command)
+	    case "add"
+		    add()
+		case "sub"
+            sub()		
+	    case "neg"
+		    neg()
+		case "eq"
+            arithmetic_eq()
+        case "gt"
+            arithmetic_gt()
+        case "lt"
+		    arithmetic_lt()
+        case "and"
+		    arithmetic_and()
+		case "or"
+		    arithmetic_or()	
+		case "not"
+		    arithmetic_not()
+		case "push"
+		    push(data1, data2)
+		case "pop"
+		    pop(data1, data2)
+	
+	end
+end
+
+function vm_to_assembly ()
+    f = InputStream(input_file_path)
+    for line in f.grabLine  
+    op = line[0:next_space_index(line, 1)-1]
+	> op
+	data1= ""
+	data2 = 0
+	if op == "push" //|| op == "pop"
+	    data1 = line[next_space_index(line, 1):next_space_index(line, 2) - 1]		
+		data2 = line[next_space_index(line, 2):next_space_index(line, 3) - 1]	
+	end
+	if op == "pop"
+	    data1 = line[next_space_index(line, 1) : next_space_index(line, 2) - 1]		
+		data2 = line[next_space_index(line, 2) : next_space_index(line, 3) - 1]
+	end
+	writeArithmetic(op, data1, data2)
+    
+    end		
+end
+
+/********** operation functions **************/
+
+function run_tests ()
+    set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\BasicTest\\BasicTest.vm")
+    set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\BasicTest\\BasicTest.asm")
+	vm_to_assembly()
+	> "finish basic test" 
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\PointerTest\\PointerTest.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\PointerTest\\PointerTest.asm")
+    vm_to_assembly()
+	> "finish pointer test"
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\StaticTest\\StaticTest.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\MemoryAccess\\StaticTest\\StaticTest.asm")
+    vm_to_assembly()
+	> "finish static test"
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\SimpleAdd\\SimpleAdd.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\SimpleAdd\\SimpleAdd.asm")
+    vm_to_assembly()
+	> "finish simpleADD test"
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\StackTest\\StackTest.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\StackTest\\StackTest.asm")
+    vm_to_assembly()
+	> "finish Stack test "
+end
+
+/******** Files & variables intialize  *******/
+
+output_file_path = ""
+input_file_path = ""
+symbol_label_counter = 0
+file = ""
+result = ""
+
+run_tests()
