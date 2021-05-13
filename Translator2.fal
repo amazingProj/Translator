@@ -101,7 +101,7 @@ function arithmetic_gt ()
 	result.writeText("D=M"
 						   + "\n" + "@IF_TRUE" + file + symbol_label_counter)
 	++symbol_label_counter
-	result.writeText( "\n" + "D;JGT" 
+	result.writeText( "\n" + "D;JLT" 
 						   + "\n" + "@0"
 						   + "\n" + "A=M"
 						   + "\n" + "A=A-1"
@@ -378,7 +378,7 @@ end
 
 function if_goto (label_name)
     result.writeText( "@SP" + "\n" + "AM=M-1" + "\n" + "D=M" + "\n" + "@" + label_name 
-	+ "\n" + "D;JGT" + "\n" )
+	+ "\n" + "D;JLT" + "\n" )
 end
 
 function call (label_name, index)
@@ -584,7 +584,26 @@ function run_tests ()
 	> "finish Stack test "
 end
 
+function copy_to_file (src, target)
+	scanner_src = InputStream(src)
+	writer_src = OutputStream(target)
+	for line in scanner_src.grabLine
+		writer_src.writeText(line + "\n")
+	end
+	scanner_src.close()
+	writer_src.close()
+end
+
+function union_files (src1, src2, target)
+    writer_sys_call = OutputStream(target)
+	writer_sys_call.writeText( "@Sys.init" + "\n" + "0;JMP" + "\n" )
+    writer_sys_call.close()
+	//copy_to_file(src1, target)
+	//copy_to_file(src2, target)
+end
+
 function run_tests_number_2 ()
+    > "constructing tests:"
     set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\SimpleFunction\\SimpleFunction.vm")
     set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\SimpleFunction\\SimpleFunction.asm")
 	vm_to_assembly()
@@ -597,9 +616,16 @@ function run_tests_number_2 ()
 	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\ProgramFlow\\FibonacciSeries\\FibonacciSeries.asm")
     vm_to_assembly()
 	> "finish FibonacciSeries test"
-	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\SimpleAdd\\SimpleAdd.vm")
-	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\SimpleAdd\\SimpleAdd.asm")
-    vm_to_assembly()
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\Main.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\Main.asm")
+	vm_to_assembly()
+	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\Sys.vm")
+	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\Sys.asm")
+	vm_to_assembly()
+	union_files("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\Main.asm",
+	"C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\Sys.asm",
+	"C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil2\\project 08\\FunctionCalls\\FibonacciElement\\FibonacciElement.asm")
+    //vm_to_assembly()
 	> "finish simpleADD test"
 	set_input_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\StackTest\\StackTest.vm")
 	set_output_file("C:\\Users\\asaf0\\Desktop\\Semster B\\Programming Langauges\\Exercises\\Exercises\\Targil1\\project 07\\StackArithmetic\\StackTest\\StackTest.asm")
@@ -615,7 +641,6 @@ input_file_path = ""
 symbol_label_counter = 0
 file = ""
 result = ""
-func_counter = 1
-
+func_counter = 0
 /****** running ******/
 run_tests_number_2()
